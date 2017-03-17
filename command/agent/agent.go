@@ -369,7 +369,7 @@ func (a *Agent) setupServer() error {
 						Interval:      serverHttpCheckInterval,
 						Timeout:       serverHttpCheckTimeout,
 						PortLabel:     httpCheckAddr,
-						TLSSkipVerify: a.config.Consul.ChecksTLSSkipVerify,
+						TLSSkipVerify: *a.config.Consul.ChecksTLSSkipVerify,
 					},
 				},
 			}
