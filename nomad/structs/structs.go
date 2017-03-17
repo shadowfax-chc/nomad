@@ -2074,6 +2074,7 @@ type ServiceCheck struct {
 	Interval      time.Duration // Interval of the check
 	Timeout       time.Duration // Timeout of the response from the check before consul fails the check
 	InitialStatus string        // Initial status of the check
+	TLSSkipVerify bool          // Skip TLS verification for https check
 }
 
 func (sc *ServiceCheck) Copy() *ServiceCheck {

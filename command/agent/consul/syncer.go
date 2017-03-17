@@ -72,6 +72,9 @@ const (
 	// ServiceTagHTTP is the tag assigned to HTTP services
 	ServiceTagHTTP = "http"
 
+	// ServiceTagHTTPS is the tag assigned to HTTPS services
+	ServiceTagHTTPS = "https"
+
 	// ServiceTagRPC is the tag assigned to RPC services
 	ServiceTagRPC = "rpc"
 
@@ -746,6 +749,9 @@ func (c *Syncer) createCheckReg(check *structs.ServiceCheck, serviceReg *consul.
 		}
 		url := base.ResolveReference(relative)
 		chkReg.HTTP = url.String()
+		if check.Protocol == "https" {
+			chkReg.TLSSkipVerify = check.TLSSkipVerify
+		}
 	case structs.ServiceCheckTCP:
 		chkReg.TCP = net.JoinHostPort(host, strconv.Itoa(port))
 	case structs.ServiceCheckScript:

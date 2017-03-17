@@ -352,23 +352,44 @@ func (a *Agent) setupServer() error {
 	}
 
 	// Create the Nomad Server services for Consul
-	// TODO re-introduce HTTP/S checks when Consul 0.7.1 comes out
 	if *a.config.Consul.AutoAdvertise {
-		httpServ := &structs.Service{
-			Name:      a.config.Consul.ServerServiceName,
-			PortLabel: a.config.AdvertiseAddrs.HTTP,
-			Tags:      []string{consul.ServiceTagHTTP},
-			Checks: []*structs.ServiceCheck{
-				&structs.ServiceCheck{
-					Name:      "Nomad Server HTTP Check",
-					Type:      "http",
-					Path:      "/v1/status/peers",
-					Protocol:  "http",
-					Interval:  serverHttpCheckInterval,
-					Timeout:   serverHttpCheckTimeout,
-					PortLabel: httpCheckAddr,
+		var httpServ *structs.Service
+
+		if conf.TLSConfig.EnableHTTP {
+			httpServ = &structs.Service{
+				Name:      a.config.Consul.ServerServiceName,
+				PortLabel: a.config.AdvertiseAddrs.HTTP,
+				Tags:      []string{consul.ServiceTagHTTPS},
+				Checks: []*structs.ServiceCheck{
+					&structs.ServiceCheck{
+						Name:          "Nomad Server HTTP Check",
+						Type:          "http",
+						Path:          "/v1/status/peers",
+						Protocol:      "https",
+						Interval:      serverHttpCheckInterval,
+						Timeout:       serverHttpCheckTimeout,
+						PortLabel:     httpCheckAddr,
+						TLSSkipVerify: a.config.Consul.ChecksTLSSkipVerify,
+					},
 				},
-			},
+			}
+		} else {
+			httpServ = &structs.Service{
+				Name:      a.config.Consul.ServerServiceName,
+				PortLabel: a.config.AdvertiseAddrs.HTTP,
+				Tags:      []string{consul.ServiceTagHTTP},
+				Checks: []*structs.ServiceCheck{
+					&structs.ServiceCheck{
+						Name:      "Nomad Server HTTP Check",
+						Type:      "http",
+						Path:      "/v1/status/peers",
+						Protocol:  "http",
+						Interval:  serverHttpCheckInterval,
+						Timeout:   serverHttpCheckTimeout,
+						PortLabel: httpCheckAddr,
+					},
+				},
+			}
 		}
 		rpcServ := &structs.Service{
 			Name:      a.config.Consul.ServerServiceName,
@@ -399,14 +420,10 @@ func (a *Agent) setupServer() error {
 			},
 		}
 
-		// Add the http port check if TLS isn't enabled
-		// TODO Add TLS check when Consul 0.7.1 comes out.
 		consulServices := map[consul.ServiceKey]*structs.Service{
 			consul.GenerateServiceKey(rpcServ):  rpcServ,
 			consul.GenerateServiceKey(serfServ): serfServ,
-		}
-		if !conf.TLSConfig.EnableHTTP {
-			consulServices[consul.GenerateServiceKey(httpServ)] = httpServ
+			consul.GenerateServiceKey(httpServ): httpServ,
 		}
 		a.consulSyncer.SetServices(consul.ServerDomain, consulServices)
 	}

@@ -37,6 +37,10 @@ type ConsulConfig struct {
 	// address instead of bind address
 	ChecksUseAdvertise *bool `mapstructure:"checks_use_advertise"`
 
+	// ChecksTLSSkipVerify specifies that Consul checks should skip tls
+	// verification for https checks
+	ChecksTLSSkipVerify *bool `mapstructure:"checks_tls_skip_verify"`
+
 	// Addr is the address of the local Consul agent
 	Addr string `mapstructure:"address"`
 
@@ -75,19 +79,20 @@ type ConsulConfig struct {
 	ClientAutoJoin *bool `mapstructure:"client_auto_join"`
 }
 
-// DefaultConsulConfig() returns the canonical defaults for the Nomad
+// DefaultConsulConfig returns the canonical defaults for the Nomad
 // `consul` configuration.
 func DefaultConsulConfig() *ConsulConfig {
 	return &ConsulConfig{
-		ServerServiceName:  "nomad",
-		ClientServiceName:  "nomad-client",
-		AutoAdvertise:      helper.BoolToPtr(true),
-		ChecksUseAdvertise: helper.BoolToPtr(false),
-		EnableSSL:          helper.BoolToPtr(false),
-		VerifySSL:          helper.BoolToPtr(false),
-		ServerAutoJoin:     helper.BoolToPtr(true),
-		ClientAutoJoin:     helper.BoolToPtr(true),
-		Timeout:            5 * time.Second,
+		ServerServiceName:   "nomad",
+		ClientServiceName:   "nomad-client",
+		AutoAdvertise:       helper.BoolToPtr(true),
+		ChecksUseAdvertise:  helper.BoolToPtr(false),
+		ChecksTLSSkipVerify: helper.BoolToPtr(false),
+		EnableSSL:           helper.BoolToPtr(false),
+		VerifySSL:           helper.BoolToPtr(false),
+		ServerAutoJoin:      helper.BoolToPtr(true),
+		ClientAutoJoin:      helper.BoolToPtr(true),
+		Timeout:             5 * time.Second,
 	}
 }
 
@@ -139,6 +144,9 @@ func (a *ConsulConfig) Merge(b *ConsulConfig) *ConsulConfig {
 	}
 	if b.ChecksUseAdvertise != nil {
 		result.ChecksUseAdvertise = helper.BoolToPtr(*b.ChecksUseAdvertise)
+	}
+	if b.ChecksTLSSkipVerify != nil {
+		result.ChecksTLSSkipVerify = helper.BoolToPtr(*b.ChecksTLSSkipVerify)
 	}
 	return result
 }
@@ -210,6 +218,9 @@ func (c *ConsulConfig) Copy() *ConsulConfig {
 	}
 	if nc.ChecksUseAdvertise != nil {
 		nc.ChecksUseAdvertise = helper.BoolToPtr(*nc.ChecksUseAdvertise)
+	}
+	if nc.ChecksTLSSkipVerify != nil {
+		nc.ChecksTLSSkipVerify = helper.BoolToPtr(*nc.ChecksTLSSkipVerify)
 	}
 	if nc.EnableSSL != nil {
 		nc.EnableSSL = helper.BoolToPtr(*nc.EnableSSL)
