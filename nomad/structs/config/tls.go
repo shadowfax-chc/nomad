@@ -2,7 +2,9 @@ package config
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"sync"
 )
 
@@ -50,8 +52,10 @@ type TLSConfig struct {
 }
 
 type KeyLoader struct {
-	cacheLock   sync.Mutex
-	certificate *tls.Certificate
+	cacheLock         sync.Mutex
+	certificate       *tls.Certificate
+	OutgoingTLSConfig *tls.Config
+	IncomingTLSConfig *tls.Config
 }
 
 // LoadKeyPair reloads the TLS certificate based on the specified certificate
@@ -73,6 +77,40 @@ func (k *KeyLoader) LoadKeyPair(certFile, keyFile string) (*tls.Certificate, err
 
 	k.certificate = &cert
 	return k.certificate, nil
+}
+
+func appendToCertPool(caFile string, pool *x509.CertPool) error {
+	// Read the file
+	data, err := ioutil.ReadFile(caFile)
+	if err != nil {
+		return fmt.Errorf("Failed to read CA file: %v", err)
+	}
+
+	if !pool.AppendCertsFromPEM(data) {
+		return fmt.Errorf("Failed to parse any CA certificates")
+	}
+
+	return nil
+}
+
+func (k *KeyLoader) AppendClientCA(caFile string) error {
+	if k.IncomingTLSConfig == nil || caFile == "" {
+		return nil
+	}
+	if k.IncomingTLSConfig.ClientCAs == nil {
+		k.IncomingTLSConfig.ClientCAs = x509.NewCertPool()
+	}
+	return appendToCertPool(caFile, k.IncomingTLSConfig.ClientCAs)
+}
+
+func (k *KeyLoader) AppendRootCA(caFile string) error {
+	if k.OutgoingTLSConfig == nil || caFile == "" {
+		return nil
+	}
+	if k.OutgoingTLSConfig.RootCAs == nil {
+		k.OutgoingTLSConfig.RootCAs = x509.NewCertPool()
+	}
+	return appendToCertPool(caFile, k.OutgoingTLSConfig.RootCAs)
 }
 
 // GetOutgoingCertificate fetches the currently-loaded certificate when

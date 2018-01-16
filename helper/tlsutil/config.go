@@ -117,12 +117,8 @@ func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 		return nil, nil
 	}
 	// Create the tlsConfig
-	tlsConfig := &tls.Config{
-		RootCAs:            x509.NewCertPool(),
-		InsecureSkipVerify: true,
-	}
-	if c.VerifyServerHostname {
-		tlsConfig.InsecureSkipVerify = false
+	c.KeyLoader.OutgoingTLSConfig = &tls.Config{
+		InsecureSkipVerify: !c.VerifyServerHostname,
 	}
 
 	// Ensure we have a CA if VerifyOutgoing is set
@@ -131,7 +127,7 @@ func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 	}
 
 	// Parse the CA cert if any
-	err := c.AppendCA(tlsConfig.RootCAs)
+	err := c.KeyLoader.AppendClientCA(c.CAFile)
 	if err != nil {
 		return nil, err
 	}
@@ -140,11 +136,11 @@ func (c *Config) OutgoingTLSConfig() (*tls.Config, error) {
 	if err != nil {
 		return nil, err
 	} else if cert != nil {
-		tlsConfig.GetCertificate = c.KeyLoader.GetOutgoingCertificate
-		tlsConfig.GetClientCertificate = c.KeyLoader.GetClientCertificate
+		c.KeyLoader.OutgoingTLSConfig.GetCertificate = c.KeyLoader.GetOutgoingCertificate
+		c.KeyLoader.OutgoingTLSConfig.GetClientCertificate = c.KeyLoader.GetClientCertificate
 	}
 
-	return tlsConfig, nil
+	return c.KeyLoader.OutgoingTLSConfig, nil
 }
 
 // OutgoingTLSWrapper returns a a Wrapper based on the OutgoingTLS
@@ -264,6 +260,7 @@ func (c *Config) IncomingTLSConfig() (*tls.Config, error) {
 			return nil, fmt.Errorf("VerifyIncoming set, and no Cert/Key pair provided!")
 		}
 	}
+	c.KeyLoader.IncomingTLSConfig = tlsConfig
 
 	return tlsConfig, nil
 }

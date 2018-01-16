@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"crypto/x509"
 	"fmt"
 	"io"
 	"log"
@@ -746,6 +747,22 @@ func (a *Agent) Reload(newConfig *Config) error {
 			_, err := keyloader.LoadKeyPair(newConfig.TLSConfig.CertFile, newConfig.TLSConfig.KeyFile)
 			if err != nil {
 				return err
+			}
+			if newConfig.TLSConfig.CAFile != "" {
+				if keyloader.OutgoingTLSConfig != nil {
+					keyloader.OutgoingTLSConfig.RootCAs = x509.NewCertPool()
+					err := keyloader.AppendRootCA(newConfig.TLSConfig.CAFile)
+					if err != nil {
+						return err
+					}
+				}
+				if keyloader.IncomingTLSConfig != nil {
+					keyloader.IncomingTLSConfig.ClientCAs = x509.NewCertPool()
+					err := keyloader.AppendClientCA(newConfig.TLSConfig.CAFile)
+					if err != nil {
+						return err
+					}
+				}
 			}
 			a.config.TLSConfig = newConfig.TLSConfig
 			a.config.TLSConfig.KeyLoader = keyloader
